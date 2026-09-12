@@ -29,8 +29,7 @@
 ただし自己責任で。
 
 ## 制作環境・検証環境
-Visual Studio Code
-
-Google Chrome 152.0.7977.83
+- Visual Studio Code
+- Google Chrome 152.0.7977.83
 
 © 2026 Kasuga Kosuke
