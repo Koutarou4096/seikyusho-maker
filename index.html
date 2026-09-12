@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+  <meta charset="UTF-8">
+  <title>かんたん請求書メーカー v0.1</title>
+  <style>
+    /* ---------- 画面表示(印刷しないとき)の見た目 ---------- */
+    body {
+      font-family: sans-serif;
+      /* ← 特別なフォントは使わず、そのまま */
+      font-size: 16px;
+      /* ← 全体的に文字を大きめに */
+      background-color: #f4f6f8;
+      margin: 0;
+      padding: 24px;
+    }
+
+    #form-area {
+      background: #ffffff;
+      max-width: 480px;
+      margin: 0 auto;
+      padding: 24px;
+      border-radius: 12px;
+      /* 角丸で今風に */
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+      /* 軽い影 */
+    }
+
+    #form-area h1 {
+      font-size: 22px;
+      margin-bottom: 20px;
+    }
+
+    /* 項目ごとに色分けする(左端に色帯をつける) */
+    .field {
+      margin-bottom: 16px;
+      padding: 10px 12px;
+      border-left: 6px solid #ccc;
+      /* 色は下の.field-○○で上書き */
+      border-radius: 4px;
+      background-color: #fafafa;
+    }
+
+    .field-name {
+      border-left-color: #4a90d9;
+    }
+
+    /* 青 */
+    .field-date {
+      border-left-color: #57b894;
+    }
+
+    /* 緑 */
+    .field-amount {
+      border-left-color: #e08e3e;
+    }
+
+    /* オレンジ */
+
+    .field label {
+      display: block;
+      font-size: 14px;
+      font-weight: bold;
+      margin-bottom: 4px;
+      color: #444;
+    }
+
+    .field input {
+      font-size: 16px;
+      padding: 6px 8px;
+      width: 90%;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+    }
+
+    #form-area button {
+      font-size: 15px;
+      padding: 8px 16px;
+      margin-top: 8px;
+      margin-right: 8px;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      color: #fff;
+    }
+
+    /* 追加したCSS */
+    #invoice-list-ui .btn-delete {
+      background-color: #c0392b;
+      color: #fff;
+      font-size: 13px;
+      padding: 4px 10px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      margin-left: 8px;
+    }
+
+    #btn-add {
+      background-color: #4a90d9;
+    }
+
+    /* 青 */
+    #btn-print {
+      background-color: #57b894;
+    }
+
+    /* 緑 */
+
+    #invoice-list-ui li {
+      font-size: 15px;
+      margin-bottom: 6px;
+    }
+
+    /* 追加するCSS */
+    @media screen {
+      #print-area {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+      }
+    }
+
+    /* 念のため、幅が縮まないように固定しておく */
+    .invoice {
+      flex-shrink: 0;
+    }
+
+    .invoice {
+      overflow: hidden;
+      /* 一時的に追加:文字が見切れたら8cmに収まっていない証拠 */
+    }
+
+    /* 印刷時だけ「入力フォーム」を非表示にする */
+    @media print {
+      .no-print {
+        display: none;
+      }
+    }
+
+    /* ---------- 印刷される請求書1枚分のデザイン ---------- */
+
+    /* 用紙設定:A4、余白1cm */
+    /* After */
+    @page {
+      size: A4;
+      margin: 1cm 0cm;
+      /* 上下1cm、左右0cm */
+    }
+
+    .invoice {
+      box-sizing: border-box;
+      /* paddingを含めてサイズを計算する設定 */
+      width: 21cm;
+      /* 横:A4の短辺と同じ */
+      height: 8cm;
+      /* 縦:指定サイズ */
+      padding: 0.5cm;
+      margin-bottom: 0.5cm;
+      /* 次の請求書との間隔 */
+      border-bottom: 1px dashed #999;
+      /* 切り取り線(不要なら削除可) */
+
+      background-color: #ffffff;
+      /* 背景:白 */
+      color: #000000;
+      /* 文字:黒(インク節約・視認性のため) */
+
+      font-family: "BIZ UDGothic", "BIZ UDPGothic", sans-serif;
+      /* ↑ PCにBIZ UDゴシックが入っていればそれで表示され、
+       無ければ普通のゴシック体(sans-serif)になる */
+      line-height: 1.6;
+      /* BIZ UDゴシックは行間が詰まって見えるため広げる */
+      letter-spacing: 0.05em;
+      /* 同じ理由で字間も広げる */
+    }
+
+    /* 3枚ごとに改ページ(A4 1枚に請求書3枚を印刷するため) */
+    .invoice:nth-child(3n):not(:last-child) {
+      page-break-after: always;
+    }
+
+    .invoice-header {
+      position: relative;
+      /* 日付を右端に固定するための基準にする */
+      text-align: center;
+      /* 「請求書」を中央揃えにする */
+      font-size: 14pt;
+      border-bottom: 2px solid #000;
+      padding-bottom: 4px;
+      margin-bottom: 8px;
+    }
+
+    .invoice-date {
+      position: absolute;
+      /* 中央揃えの影響を受けず、右端に固定表示 */
+      right: 0;
+      top: 0;
+    }
+
+    .invoice-title {
+      font-weight: bold;
+      font-size: 16pt;
+    }
+
+    .invoice-to {
+      display: inline-block;
+      font-size: 16pt;
+      font-weight: bold;
+      border: 1px solid #000;
+      /* 四角で囲む */
+      padding: 4px 12px;
+      margin-bottom: 8px;
+    }
+
+    .invoice-amount {
+      display: inline-block;
+      font-size: 20pt;
+      font-weight: bold;
+      border: 2px solid #000;
+      /* 四角で囲む(こちらは少し太めの枠) */
+      padding: 6px 16px;
+      margin-bottom: 8px;
+    }
+
+    .invoice-bank {
+      font-size: 10pt;
+      margin-bottom: 8px;
+    }
+
+    .invoice-message {
+      font-size: 9pt;
+      color: #333;
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- ============================================
+     入力フォーム部分。画面上でだけ表示され、
+     印刷時は .no-print クラスの効果で消える
+============================================= -->
+  <div class="no-print" id="form-area">
+    <h1>かんたん請求書メーカー v0.1</h1>
+
+    <!-- class="field field-○○" で項目ごとに色を分ける -->
+    <div class="field field-name">
+      <label for="input-name">宛名(お客様名)</label>
+      <input type="text" id="input-name" placeholder="例:山田 太郎">
+    </div>
+
+    <div class="field field-date">
+      <label for="input-date">日付</label>
+      <input type="date" id="input-date">
+    </div>
+
+    <div class="field field-amount">
+      <label for="input-amount">金額(円)</label>
+      <input type="number" id="input-amount" placeholder="例:5000">
+    </div>
+
+    <!-- ボタンにidをつけて、CSS側で色を指定できるようにする -->
+    <button id="btn-add" onclick="addInvoice()">請求書をリストに追加</button>
+    <button id="btn-print" onclick="window.print()">印刷する</button>
+
+    <hr>
+    <p>現在リストにある請求書:</p>
+    <ul id="invoice-list-ui"></ul>
+  </div>
+
+  <!-- ============================================
+     印刷される請求書エリア。
+     JavaScriptが追加された件数ぶんdivを自動生成して挿入する
+============================================= -->
+  <div id="print-area"></div>
+
+  <script>
+    /* ============================================
+   最初から書いてある固定文言。
+   口座が変わったときはここだけ書き換えればよい
+============================================= */
+    const THANK_YOU_MESSAGE =
+      "この度はご注文いただきありがとうございます。お手数をおかけしますが、" +
+      "お手元に届きましたら、記載されている金額をお早めに下記の口座にお振込みください。";
+
+    const BANK_INFO = "○○銀行 ○○支店(店番:000) 普通 1234567 名義:ヤマダ タロウ";
+    // ↑ 実際の振込先情報に書き換えること
+
+    /* 追加された請求書データを溜めておく配列 */
+    let invoiceList = [];
+
+    /* ページを開いたとき、日付欄に今日の日付を自動セット */
+    window.onload = function () {
+      const today = new Date().toISOString().split("T")[0]; // "YYYY-MM-DD"
+      document.getElementById("input-date").value = today;
+    };
+
+    /* 「リストに追加」ボタンの処理 */
+    function addInvoice() {
+      const name = document.getElementById("input-name").value;
+      const date = document.getElementById("input-date").value;
+      const amount = document.getElementById("input-amount").value;
+
+      if (name === "" || amount === "") {
+        alert("宛名と金額は必須です。");
+        return;
+      }
+
+      invoiceList.push({ name: name, date: date, amount: amount });
+      document.getElementById("input-amount").value = "";
+      renderAll();
+    }
+
+    /* リストから1件削除 */
+    function deleteInvoice(index) {
+      invoiceList.splice(index, 1);
+      renderAll();
+    }
+
+    /* 1件分のデータを、印刷用のHTML文字列に変換 */
+    function createInvoiceHTML(entry) {
+      const formattedAmount = Number(entry.amount).toLocaleString();
+      return `
+    <div class="invoice">
+      <div class="invoice-header">
+        <span class="invoice-date">${entry.date}</span>
+        <span class="invoice-title">請求書</span>
+      </div>
+      <div class="invoice-to">${entry.name} 様</div>
+      <div class="invoice-message">${THANK_YOU_MESSAGE}</div>
+      <div class="invoice-amount">ご請求金額:¥${formattedAmount}-</div>
+      <div class="invoice-bank">お振込先:${BANK_INFO}</div>
+    </div>
+  `;
+    }
+
+    /* 入力フォーム側の一覧と、印刷エリアを両方描き直す */
+    function renderAll() {
+      const listUI = document.getElementById("invoice-list-ui");
+      listUI.innerHTML = "";
+
+      invoiceList.forEach(function (entry, index) {
+        const li = document.createElement("li");
+        li.textContent = `${entry.name} 様 / ¥${Number(entry.amount).toLocaleString()} `;
+
+        const deleteButton = document.createElement("button");
+        deleteButton.textContent = "削除";
+        deleteButton.className = "btn-delete"; // ← 追加
+        deleteButton.onclick = function () { deleteInvoice(index); };
+
+        li.appendChild(deleteButton);
+        listUI.appendChild(li);
+      });
+
+      const printArea = document.getElementById("print-area");
+      printArea.innerHTML = invoiceList.map(createInvoiceHTML).join("");
+    }
+  </script>
+</body>
+
+</html>
