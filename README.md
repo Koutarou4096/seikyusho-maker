@@ -27,4 +27,4 @@
 - Visual Studio Code
 - Google Chrome 152.0.7977.83
 
-© 2026 Kasuga Kosuke
+© 2026 こっちっちー
