@@ -29,4 +29,6 @@
 - Visual Studio Code
 - Google Chrome 152.0.7977.83
 
+本プロジェクトはMITライセンスのもとで公開しています。詳細は[LICENSE](./LICENSE)ファイルを参照してください。
+
 © 2026 こっちっちー
