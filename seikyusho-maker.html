@@ -3,20 +3,24 @@
 
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>かんたん請求書メーカー v0.1</title>
+
   <style>
-    /* ---------- 画面表示(印刷しないとき)の見た目 ---------- */
+    /* =========================================================
+       画面表示時のデザイン
+    ========================================================= */
+
     body {
       font-family: sans-serif;
-      /* ← 特別なフォントは使わず、そのまま */
       font-size: 16px;
-      /* ← 全体的に文字を大きめに */
       background-color: #f4f6f8;
       margin: 0;
       padding: 24px;
     }
 
     #form-area {
+      box-sizing: border-box;
       background: #ffffff;
       max-width: 480px;
       margin: 0 auto;
@@ -27,34 +31,37 @@
 
     #form-area h1 {
       font-size: 22px;
+      margin-top: 0;
       margin-bottom: 20px;
     }
 
-    /* 項目ごとに色分けする(左端に色帯をつける) */
+    /* ---------------------------------------------------------
+       入力項目
+    --------------------------------------------------------- */
+
     .field {
       margin-bottom: 16px;
       padding: 10px 12px;
       border-left: 6px solid #ccc;
-      /* 色は下の.field-○○で上書き */
       border-radius: 4px;
       background-color: #fafafa;
+      box-sizing: border-box;
     }
 
+    /* 宛名欄は青 */
     .field-name {
       border-left-color: #4a90d9;
     }
 
-    /* 青 */
+    /* 日付欄は緑 */
     .field-date {
       border-left-color: #57b894;
     }
 
-    /* 緑 */
+    /* 金額欄はオレンジ */
     .field-amount {
       border-left-color: #e08e3e;
     }
-
-    /* オレンジ */
 
     .field label {
       display: block;
@@ -65,12 +72,17 @@
     }
 
     .field input {
+      box-sizing: border-box;
       font-size: 16px;
       padding: 6px 8px;
-      width: 90%;
+      width: 100%;
       border: 1px solid #ccc;
       border-radius: 4px;
     }
+
+    /* ---------------------------------------------------------
+       ボタン
+    --------------------------------------------------------- */
 
     #form-area button {
       font-size: 15px;
@@ -83,7 +95,30 @@
       color: #fff;
     }
 
-    /* 追加したCSS */
+    /* 請求書追加ボタン */
+    #btn-add {
+      background-color: #4a90d9;
+    }
+
+    /* 印刷ボタン */
+    #btn-print {
+      background-color: #57b894;
+    }
+
+    /* ---------------------------------------------------------
+       登録済み請求書一覧
+    --------------------------------------------------------- */
+
+    #invoice-list-ui {
+      padding-left: 24px;
+    }
+
+    #invoice-list-ui li {
+      font-size: 15px;
+      margin-bottom: 6px;
+    }
+
+    /* 一覧の削除ボタン */
     #invoice-list-ui .btn-delete {
       background-color: #c0392b;
       color: #fff;
@@ -95,133 +130,174 @@
       margin-left: 8px;
     }
 
-    #btn-add {
-      background-color: #4a90d9;
+    /* ---------------------------------------------------------
+       印刷エリア
+    --------------------------------------------------------- */
+
+    #print-area {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
     }
 
-    /* 青 */
-    #btn-print {
-      background-color: #57b894;
-    }
-
-    /* 緑 */
-
-    #invoice-list-ui li {
-      font-size: 15px;
-      margin-bottom: 6px;
-    }
-
-    /* 追加するCSS */
-    @media screen {
-      #print-area {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-      }
-    }
-
-    /* 念のため、幅が縮まないように固定しておく */
     .invoice {
       flex-shrink: 0;
-    }
-
-    .invoice {
       overflow: hidden;
-      /* 一時的に追加:文字が見切れたら8cmに収まっていない証拠 */
     }
 
-    /* 印刷時だけ「入力フォーム」を非表示にする */
+
+    /* =========================================================
+       印刷時の設定
+    ========================================================= */
+
+    @page {
+      size: A4;
+      margin: 1cm 0;
+    }
+
     @media print {
+
+      /* -------------------------------------------------------
+         入力フォームなど、印刷対象外の要素を隠す
+      ------------------------------------------------------- */
+
       .no-print {
-        display: none;
+        display: none !important;
+      }
+
+      /*
+       * 画面表示用のbodyのpaddingを印刷時には解除する。
+       *
+       * これをしないと、
+       * 「A4の横幅21cm」に設定した.invoiceに対して
+       * bodyの左右padding 24pxが追加され、
+       * 印刷レイアウトと.invoiceの指定幅が一致しなくなる。
+       */
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+        background: #fff;
+      }
+
+      /*
+       * 印刷時は請求書をA4幅いっぱいに配置する。
+       */
+      #print-area {
+        display: block;
+        width: 21cm;
+        margin: 0 auto;
       }
     }
 
-    /* ---------- 印刷される請求書1枚分のデザイン ---------- */
 
-    /* 用紙設定:A4、余白1cm */
-    /* After */
-    @page {
-      size: A4;
-      margin: 1cm 0cm;
-      /* 上下1cm、左右0cm */
-    }
+    /* =========================================================
+       印刷される請求書1枚分のデザイン
+    ========================================================= */
 
     .invoice {
       box-sizing: border-box;
-      /* paddingを含めてサイズを計算する設定 */
+
+      /* A4短辺いっぱいの幅 */
       width: 21cm;
-      /* 横:A4の短辺と同じ */
+
+      /* 1枚あたり8cm */
       height: 8cm;
-      /* 縦:指定サイズ */
+
+      /* 請求書内部の余白 */
       padding: 0.5cm;
-      margin-bottom: 0.5cm;
+
       /* 次の請求書との間隔 */
-      border-bottom: 1px dashed #999;
+      margin-bottom: 0.5cm;
+
       /* 切り取り線 */
+      border-bottom: 1px dashed #999;
 
       background-color: #ffffff;
-      /* 背景:白 */
       color: #000000;
-      /* 文字:黒(インク節約のため) */
 
       font-family: "BIZ UDGothic", "BIZ UDPGothic", sans-serif;
       line-height: 1.6;
       letter-spacing: 0.05em;
     }
 
-    /* 3枚ごとに改ページ(A4 1枚に請求書3枚を印刷するため) */
+    /*
+     * 3枚目の請求書の後で改ページする。
+     *
+     * :nth-child(3n) によって、
+     * 3枚目、6枚目、9枚目……が対象になる。
+     *
+     * 最後の請求書の場合は、余計な改ページを発生させない。
+     */
     .invoice:nth-child(3n):not(:last-child) {
+      break-after: page;
       page-break-after: always;
     }
 
+    /* ---------------------------------------------------------
+       請求書ヘッダー
+    --------------------------------------------------------- */
+
     .invoice-header {
       position: relative;
-      /* 日付を右端に固定するための基準にする */
       text-align: center;
-      /* 「請求書」という文字を中央揃えにする */
       font-size: 14pt;
       border-bottom: 2px solid #000;
       padding-bottom: 4px;
       margin-bottom: 8px;
     }
 
+    /* 日付を右端に配置 */
     .invoice-date {
       position: absolute;
-      /* 中央揃えの影響を受けず、右端に固定表示 */
       right: 0;
       top: 0;
     }
 
+    /* 「請求書」のタイトル */
     .invoice-title {
       font-weight: bold;
       font-size: 16pt;
     }
+
+    /* ---------------------------------------------------------
+       宛名
+    --------------------------------------------------------- */
 
     .invoice-to {
       display: inline-block;
       font-size: 16pt;
       font-weight: bold;
       border: 1px solid #000;
-      /* 四角で囲む */
       padding: 4px 12px;
       margin-bottom: 8px;
     }
+
+    /* ---------------------------------------------------------
+       請求金額
+    --------------------------------------------------------- */
 
     .invoice-amount {
       display: inline-block;
       font-size: 20pt;
       font-weight: bold;
       border: 2px solid #000;
-      /* 四角で囲む(こちらは少し太めの枠) */
       padding: 6px 16px;
       margin-bottom: 8px;
     }
+
+    /* ---------------------------------------------------------
+       振込先
+    --------------------------------------------------------- */
 
     .invoice-bank {
       font-size: 10pt;
       margin-bottom: 8px;
     }
+
+    /* ---------------------------------------------------------
+       メッセージ
+    --------------------------------------------------------- */
 
     .invoice-message {
       font-size: 9pt;
@@ -232,126 +308,618 @@
 
 <body>
 
-  <!-- ============================================
-     入力フォーム部分。画面上でだけ表示され、
-     印刷時は .no-print クラスの効果で消える
-============================================= -->
+  <!-- =========================================================
+       入力フォーム部分
+       
+       この部分は画面上でのみ表示し、印刷時には非表示にする。
+  ========================================================== -->
+
   <div class="no-print" id="form-area">
+
     <h1>かんたん請求書メーカー v0.1</h1>
 
-    <!-- class="field field-○○" で項目ごとに色を分ける -->
+    <!-- 宛名入力欄 -->
     <div class="field field-name">
-      <label for="input-name">宛名(お客様名)</label>
-      <input type="text" id="input-name" placeholder="例:山田 太郎">
+      <label for="input-name">宛名（お客様名）</label>
+      <input
+        type="text"
+        id="input-name"
+        placeholder="例：山田 太郎"
+        maxlength="100"
+        autocomplete="off"
+      >
     </div>
 
+    <!-- 日付入力欄 -->
     <div class="field field-date">
       <label for="input-date">日付</label>
       <input type="date" id="input-date">
     </div>
 
+    <!-- 金額入力欄 -->
     <div class="field field-amount">
-      <label for="input-amount">金額(円)</label>
-      <input type="number" id="input-amount" placeholder="例:5000">
+      <label for="input-amount">金額（円）</label>
+      <input
+        type="number"
+        id="input-amount"
+        placeholder="例：5000"
+        min="0"
+        max="9007199254740991"
+        step="1"
+        inputmode="numeric"
+      >
     </div>
 
-    <!-- ボタンにidをつけて、CSS側で色を指定できるようにする -->
-    <button id="btn-add" onclick="addInvoice()">請求書をリストに追加</button>
-    <button id="btn-print" onclick="window.print()">印刷する</button>
+    <!-- 請求書をリストへ追加するボタン -->
+    <button id="btn-add" type="button" onclick="addInvoice()">
+      請求書をリストに追加
+    </button>
+
+    <!-- 印刷ボタン -->
+    <button id="btn-print" type="button" onclick="printInvoices()">
+      印刷する
+    </button>
 
     <hr>
-    <p>現在リストにある請求書:</p>
+
+    <p>現在リストにある請求書：</p>
+
+    <!-- JavaScriptによって登録済み請求書の一覧を生成する -->
     <ul id="invoice-list-ui"></ul>
+
   </div>
 
-  <!-- ============================================
-     印刷される請求書エリア。
-     JavaScriptが追加された件数ぶんdivを自動生成して挿入する
-============================================= -->
+
+  <!-- =========================================================
+       印刷される請求書エリア
+       
+       JavaScriptによって請求書をここへ生成する。
+  ========================================================== -->
+
   <div id="print-area"></div>
 
+
   <script>
-    /* ============================================
-   最初から書いてある固定文言。
-   口座が変わったときはここだけ書き換えればよい
-============================================= */
+    /* =========================================================
+       このプログラムについて
+       
+       このアプリはサーバー上で動作する「バックエンド」を
+       持っていない完全なクライアントサイドアプリである。
+       
+       入力されたデータは、このページを開いている間だけ
+       JavaScriptのinvoiceList配列に保存される。
+       
+       ページを再読み込み・終了するとデータは消える。
+    ========================================================== */
+
+
+    /* =========================================================
+       固定文言
+       
+       請求書に毎回表示するお礼文を定義する。
+       ========================================================= */
+
     const THANK_YOU_MESSAGE =
       "この度はご注文いただきありがとうございます。お手数をおかけしますが、" +
       "お手元に届きましたら、記載されている金額をお早めに下記の口座にお振込みください。";
 
-    const BANK_INFO = "○○銀行 ○○支店(店番:000) 普通 1234567 名義:ヤマダ タロウ";
-    // ↑ 実際の振込先情報に書き換えること
 
-    /* 追加された請求書データを溜めておく配列 */
+    /* =========================================================
+       振込先情報
+       
+       実際に使用するときは、ここを正しい口座情報に変更する。
+       ========================================================= */
+
+    const BANK_INFO =
+      "○○銀行 ○○支店（店番:000） 普通 1234567 名義:ヤマダ タロウ";
+
+
+    /* =========================================================
+       請求書データを保存する配列
+       
+       追加された請求書は、この配列にオブジェクトとして保存する。
+       
+       例：
+       {
+         name: "山田 太郎",
+         date: "2026-09-15",
+         amount: 5000
+       }
+    ========================================================= */
+
     let invoiceList = [];
 
-    /* ページを開いたとき、日付欄に今日の日付を自動セット */
-    window.onload = function () {
-      const today = new Date().toISOString().split("T")[0]; // "YYYY-MM-DD"
-      document.getElementById("input-date").value = today;
-    };
 
-    /* 「リストに追加」ボタンの処理 */
+    /* =========================================================
+       ページ読み込み時の初期処理
+       
+       ページを開いたときに実行する。
+       
+       日本時間の日付を取得して、日付入力欄へ自動設定する。
+       
+       元のコードでは toISOString() を使用していたが、
+       toISOString() はUTC基準の日付になる。
+       
+       そのため、日本時間の深夜などでは
+       「今日」ではなく「昨日」が設定される可能性がある。
+       
+       今回はローカル時刻を使って安全にYYYY-MM-DDを作る。
+    ========================================================= */
+
+    window.addEventListener("DOMContentLoaded", function () {
+
+      /* 現在の日時を取得する */
+      const today = new Date();
+
+      /* 年を取得する */
+      const year = today.getFullYear();
+
+      /* 月を取得する。
+       * JavaScriptのgetMonth()は0～11なので1を足す。
+       */
+      const month = String(today.getMonth() + 1).padStart(2, "0");
+
+      /* 日を取得する */
+      const day = String(today.getDate()).padStart(2, "0");
+
+      /* YYYY-MM-DD形式の日付を作成する */
+      const localDate =
+        `${year}-${month}-${day}`;
+
+      /* 日付入力欄に今日の日付を設定する */
+      document.getElementById("input-date").value = localDate;
+
+    });
+
+
+    /* =========================================================
+       HTMLエスケープ処理
+       
+       ユーザーが入力した文字列をHTMLとして解釈させないための
+       セキュリティ対策。
+       
+       例えば宛名に
+       
+       <img src=x onerror=alert(1)>
+       
+       のような文字列を入力されても、
+       HTMLタグとして実行されないようにする。
+       
+       元のコードでは入力値をinnerHTMLへ直接埋め込んでいたため、
+       この対策が必要だった。
+    ========================================================= */
+
+    function escapeHTML(value) {
+
+      /* 文字列を安全に扱うためString型へ変換する */
+      return String(value)
+        /* &を最初にエスケープする */
+        .replace(/&/g, "&amp;")
+        /* <をエスケープする */
+        .replace(/</g, "&lt;")
+        /* >をエスケープする */
+        .replace(/>/g, "&gt;")
+        /* "をエスケープする */
+        .replace(/"/g, "&quot;")
+        /* 'をエスケープする */
+        .replace(/'/g, "&#039;");
+
+    }
+
+
+    /* =========================================================
+       日付表示用の処理
+       
+       input type="date"から取得したYYYY-MM-DDを、
+       請求書上で読みやすいYYYY年MM月DD日形式に変換する。
+       
+       例：
+       2026-09-15
+       ↓
+       2026年09月15日
+    ========================================================= */
+
+    function formatDate(dateString) {
+
+      /* 日付文字列が空なら空文字を返す */
+      if (!dateString) {
+        return "";
+      }
+
+      /* "-"で分割する */
+      const parts = dateString.split("-");
+
+      /* 年月日の3要素になっていなければ、そのまま返す */
+      if (parts.length !== 3) {
+        return dateString;
+      }
+
+      /* YYYY年MM月DD日形式で返す */
+      return `${parts[0]}年${parts[1]}月${parts[2]}日`;
+
+    }
+
+
+    /* =========================================================
+       「請求書をリストに追加」ボタンの処理
+       
+       入力フォームから宛名・日付・金額を取得し、
+       問題がなければinvoiceListへ追加する。
+    ========================================================= */
+
     function addInvoice() {
-      const name = document.getElementById("input-name").value;
-      const date = document.getElementById("input-date").value;
-      const amount = document.getElementById("input-amount").value;
 
-      if (name === "" || amount === "") {
-        alert("宛名と金額は必須です。");
+      /* 宛名入力欄の値を取得する */
+      const nameInput =
+        document.getElementById("input-name");
+
+      /* 日付入力欄の値を取得する */
+      const dateInput =
+        document.getElementById("input-date");
+
+      /* 金額入力欄の値を取得する */
+      const amountInput =
+        document.getElementById("input-amount");
+
+
+      /* 入力された宛名を取得し、前後の空白を削除する */
+      const name = nameInput.value.trim();
+
+      /* 日付を取得する */
+      const date = dateInput.value;
+
+      /* 金額を数値として取得する */
+      const amount = amountInput.valueAsNumber;
+
+
+      /* =======================================================
+         入力値のチェック
+      ======================================================= */
+
+      /* 宛名が空の場合 */
+      if (name === "") {
+        alert("宛名を入力してください。");
+        nameInput.focus();
         return;
       }
 
-      invoiceList.push({ name: name, date: date, amount: amount });
-      document.getElementById("input-amount").value = "";
-      renderAll();
-    }
 
-    /* リストから1件削除 */
-    function deleteInvoice(index) {
-      invoiceList.splice(index, 1);
-      renderAll();
-    }
+      /* 日付が空の場合 */
+      if (date === "") {
+        alert("日付を入力してください。");
+        dateInput.focus();
+        return;
+      }
 
-    /* 1件分のデータを、印刷用のHTML文字列に変換 */
-    function createInvoiceHTML(entry) {
-      const formattedAmount = Number(entry.amount).toLocaleString();
-      return `
-    <div class="invoice">
-      <div class="invoice-header">
-        <span class="invoice-date">${entry.date}</span>
-        <span class="invoice-title">請求書</span>
-      </div>
-      <div class="invoice-to">${entry.name} 様</div>
-      <div class="invoice-message">${THANK_YOU_MESSAGE}</div>
-      <div class="invoice-amount">ご請求金額:¥${formattedAmount}-</div>
-      <div class="invoice-bank">お振込先:${BANK_INFO}</div>
-    </div>
-  `;
-    }
 
-    /* 入力フォーム側の一覧と、印刷エリアを両方描き直す */
-    function renderAll() {
-      const listUI = document.getElementById("invoice-list-ui");
-      listUI.innerHTML = "";
+      /* 金額が有効な数値ではない場合 */
+      if (!Number.isFinite(amount)) {
+        alert("金額を正しく入力してください。");
+        amountInput.focus();
+        return;
+      }
 
-      invoiceList.forEach(function (entry, index) {
-        const li = document.createElement("li");
-        li.textContent = `${entry.name} 様 / ¥${Number(entry.amount).toLocaleString()} `;
 
-        const deleteButton = document.createElement("button");
-        deleteButton.textContent = "削除";
-        deleteButton.className = "btn-delete"; // ← 追加
-        deleteButton.onclick = function () { deleteInvoice(index); };
+      /* 金額が整数ではない場合 */
+      if (!Number.isInteger(amount)) {
+        alert("金額は整数で入力してください。");
+        amountInput.focus();
+        return;
+      }
 
-        li.appendChild(deleteButton);
-        listUI.appendChild(li);
+
+      /* 金額が0未満の場合 */
+      if (amount < 0) {
+        alert("金額は0円以上で入力してください。");
+        amountInput.focus();
+        return;
+      }
+
+
+      /* JavaScriptで正確に扱える整数の上限を超えている場合 */
+      if (!Number.isSafeInteger(amount)) {
+        alert("金額が大きすぎます。");
+        amountInput.focus();
+        return;
+      }
+
+
+      /* =======================================================
+         請求書データを配列へ追加
+         
+         amountは文字列ではなくnumberとして保存する。
+         ======================================================= */
+
+      invoiceList.push({
+        name: name,
+        date: date,
+        amount: amount
       });
 
-      const printArea = document.getElementById("print-area");
-      printArea.innerHTML = invoiceList.map(createInvoiceHTML).join("");
+
+      /* =======================================================
+         入力欄をリセット
+         
+         宛名を消すことで、前の顧客名を次の請求書へ
+         誤って使ってしまうことを防ぐ。
+         
+         日付は次の請求書でも使う可能性が高いため残す。
+         ======================================================= */
+
+      nameInput.value = "";
+      amountInput.value = "";
+
+
+      /* =======================================================
+         画面上の一覧と印刷エリアを更新する。
+      ======================================================= */
+
+      renderAll();
+
+
+      /* 次の請求書の入力をすぐ開始できるよう、
+       * 宛名入力欄へフォーカスを移す。
+       */
+      nameInput.focus();
+
     }
+
+
+    /* =========================================================
+       請求書を1件削除する処理
+       
+       indexにはinvoiceList内での位置が渡される。
+    ========================================================= */
+
+    function deleteInvoice(index) {
+
+      /* indexが正しい範囲か確認する */
+      if (
+        !Number.isInteger(index) ||
+        index < 0 ||
+        index >= invoiceList.length
+      ) {
+        return;
+      }
+
+
+      /* 削除確認を表示する */
+      const shouldDelete =
+        confirm("この請求書を削除しますか？");
+
+
+      /* キャンセルされた場合は何もしない */
+      if (!shouldDelete) {
+        return;
+      }
+
+
+      /* 指定された位置の請求書を1件削除する */
+      invoiceList.splice(index, 1);
+
+
+      /* 一覧と印刷エリアを再描画する */
+      renderAll();
+
+    }
+
+
+    /* =========================================================
+       1件分の請求書をHTMLへ変換する処理
+       
+       invoiceList内の1件のデータを受け取り、
+       印刷用のHTML文字列を作成する。
+       
+       ユーザー入力値はescapeHTML()を通してからHTMLへ埋め込む。
+    ========================================================= */
+
+    function createInvoiceHTML(entry) {
+
+      /* 金額を3桁区切りにして表示する */
+      const formattedAmount =
+        entry.amount.toLocaleString("ja-JP");
+
+
+      /* 日付を読みやすい形式へ変換する */
+      const formattedDate =
+        formatDate(entry.date);
+
+
+      /* =======================================================
+         請求書HTMLを返す
+         
+         nameとdateはユーザー入力値なのでHTMLエスケープする。
+         amountはJavaScriptのnumberとして検証済みなので、
+         toLocaleString()によって文字列化した値を使用する。
+      ======================================================= */
+
+      return `
+        <div class="invoice">
+
+          <div class="invoice-header">
+
+            <span class="invoice-date">
+              ${escapeHTML(formattedDate)}
+            </span>
+
+            <span class="invoice-title">
+              請求書
+            </span>
+
+          </div>
+
+
+          <div class="invoice-to">
+            ${escapeHTML(entry.name)} 様
+          </div>
+
+
+          <div class="invoice-message">
+            ${escapeHTML(THANK_YOU_MESSAGE)}
+          </div>
+
+
+          <div class="invoice-amount">
+            ご請求金額: ¥${formattedAmount}-
+          </div>
+
+
+          <div class="invoice-bank">
+            お振込先: ${escapeHTML(BANK_INFO)}
+          </div>
+
+        </div>
+      `;
+
+    }
+
+
+    /* =========================================================
+       画面全体を再描画する処理
+       
+       以下の2つを最新のinvoiceListに合わせて更新する。
+       
+       1. 画面上の「現在リストにある請求書」
+       2. 印刷用の請求書
+    ========================================================= */
+
+    function renderAll() {
+
+      /* =======================================================
+         画面上の請求書一覧を取得
+      ======================================================= */
+
+      const listUI =
+        document.getElementById("invoice-list-ui");
+
+
+      /* 一度一覧を空にする */
+      listUI.replaceChildren();
+
+
+      /* =======================================================
+         invoiceListの各データについて一覧項目を作成する
+      ======================================================= */
+
+      invoiceList.forEach(function (entry, index) {
+
+        /* li要素を新しく作成する */
+        const li =
+          document.createElement("li");
+
+
+        /* 宛名と金額を一覧へ表示する */
+        li.textContent =
+          `${entry.name} 様 / ¥${entry.amount.toLocaleString("ja-JP")} `;
+
+
+        /* 削除ボタンを作成する */
+        const deleteButton =
+          document.createElement("button");
+
+
+        /* ボタンに表示する文字 */
+        deleteButton.textContent = "削除";
+
+
+        /* CSSクラスを設定する */
+        deleteButton.className = "btn-delete";
+
+
+        /* ボタンの種類をbuttonに設定する */
+        deleteButton.type = "button";
+
+
+        /* -----------------------------------------------------
+           削除ボタンが押されたときの処理
+           
+           forEach()で取得したindexをdeleteInvoice()へ渡す。
+        ----------------------------------------------------- */
+
+        deleteButton.addEventListener("click", function () {
+
+          deleteInvoice(index);
+
+        });
+
+
+        /* liへ削除ボタンを追加する */
+        li.appendChild(deleteButton);
+
+
+        /* 一覧へliを追加する */
+        listUI.appendChild(li);
+
+      });
+
+
+      /* =======================================================
+         印刷エリアを取得する
+      ======================================================= */
+
+      const printArea =
+        document.getElementById("print-area");
+
+
+      /* =======================================================
+         印刷エリアを一度空にする
+      ======================================================= */
+
+      printArea.replaceChildren();
+
+
+      /* =======================================================
+         invoiceListの各請求書をHTMLへ変換して追加する
+         
+         innerHTML自体は使用しているが、
+         ユーザー入力値はcreateInvoiceHTML()内部で
+         escapeHTML()を通しているため、
+         入力値がHTMLとして直接実行されないようにしている。
+      ======================================================= */
+
+      printArea.innerHTML =
+        invoiceList
+          .map(createInvoiceHTML)
+          .join("");
+
+    }
+
+
+    /* =========================================================
+       印刷処理
+       
+       請求書が1件もない状態で印刷ボタンを押した場合、
+       空白ページを印刷してしまうため警告する。
+    ========================================================= */
+
+    function printInvoices() {
+
+      /* 請求書が0件の場合 */
+      if (invoiceList.length === 0) {
+
+        alert("印刷する請求書がありません。");
+
+        return;
+      }
+
+
+      /* ブラウザの印刷ダイアログを開く */
+      window.print();
+
+    }
+
+
+    /* =========================================================
+       初期表示
+       
+       JavaScriptが正常に読み込まれた段階で、
+       一覧と印刷エリアを空の状態として描画する。
+    ========================================================= */
+
+    renderAll();
+
   </script>
+
 </body>
 
 </html>
